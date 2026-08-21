@@ -22,7 +22,12 @@ fi
 
 NS=esignet
 MOCK_REPLYING_PARTY_SERVICE_NAME=mock-relying-party-service
-CHART_VERSION=0.0.1-develop
+# The partner-onboarder chart is used from the local mosip-onboarding repo (moupdate branch)
+# because the propertiesOverride feature used in values.yaml is not yet published in the
+# upstream mosip/partner-onboarder Helm registry. Set ONBOARDER_CHART_DIR to the path of
+# helm/partner-onboarder in your local mosip-onboarding checkout; the default assumes it
+# lives at claudeoncloud/onnnboard/mosip-onboarding/helm/partner-onboarder.
+ONBOARDER_CHART_DIR="${ONBOARDER_CHART_DIR:-$(cd "$(dirname "$0")/../../../onnnboard/mosip-onboarding/helm/partner-onboarder" && pwd)}"
 
 echo Create $NS namespace
 kubectl create ns $NS || true
@@ -129,8 +134,11 @@ function installing_onboarder() {
     $COPY_UTIL secret keycloak keycloak $NS
     $COPY_UTIL secret keycloak-client-secrets keycloak $NS
 
+    echo "Resolving chart dependencies..."
+    helm dependency update "$ONBOARDER_CHART_DIR"
+
     echo "Onboarding Mock Relying Party OIDC client"
-    helm -n $NS install esignet-mock-rp-onboarder mosip/partner-onboarder \
+    helm -n $NS install esignet-mock-rp-onboarder "$ONBOARDER_CHART_DIR" \
       $NFS_OPTION \
       $S3_OPTION \
       $MOSIPID_OPTION \
@@ -140,7 +148,6 @@ function installing_onboarder() {
       --set extraEnvVarsCM[2]=keycloak-host \
       $ENABLE_INSECURE \
       -f values.yaml \
-      --version $CHART_VERSION \
       --wait --wait-for-jobs
     echo "Partner onboarder executed and reports are moved to S3 or NFS please check the same to make sure partner was onboarded sucessfully."
     kubectl rollout restart deployment $MOCK_REPLYING_PARTY_SERVICE_NAME -n $NS
