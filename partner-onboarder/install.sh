@@ -160,6 +160,7 @@ function installing_onboarder() {
       --set extraEnvVarsCM[0]=esignet-global \
       --set extraEnvVarsCM[1]=keycloak-env-vars \
       --set extraEnvVarsCM[2]=keycloak-host \
+      --set onboarding.configmaps.onboarder-namespace.ns_esignet="$NS" \
       $ENABLE_INSECURE \
       $SYNC_LIVE_DEPLOYMENT_OPTION \
       --set onboarding.propertiesOverride.mock-rp-oidc.MOCK_RELYING_PARTY_SERVICE_NAME="$MOCK_REPLYING_PARTY_SERVICE_NAME" \
