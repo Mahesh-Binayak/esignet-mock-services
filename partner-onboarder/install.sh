@@ -20,8 +20,22 @@ if [ "$flag" = "n" ]; then
   ENABLE_INSECURE='--set onboarding.configmaps.onboarding.ENABLE_INSECURE=true';
 fi
 
+echo "Update existing live deployment with this run's onboarding result?"
+echo "(patches the mock relying party's private-key secret, restarts"
+echo "\$MOCK_REPLYING_PARTY_SERVICE_NAME, and sets \$MOCK_RELYING_PARTY_UI_NAME's CLIENT_ID)"
+echo "- leave blank to skip, e.g. for a one-off/local/test onboard that shouldn't touch"
+echo "anything already running."
+read -p "Update existing values? (y/N): " sync_live
+if [ "$sync_live" = "y" ] || [ "$sync_live" = "Y" ]; then
+  SYNC_LIVE_DEPLOYMENT_OPTION='--set onboarding.propertiesOverride.mock-rp-oidc.SYNC_LIVE_DEPLOYMENT=true'
+else
+  SYNC_LIVE_DEPLOYMENT_OPTION='--set onboarding.propertiesOverride.mock-rp-oidc.SYNC_LIVE_DEPLOYMENT=false'
+fi
+
 NS=esignet
 MOCK_REPLYING_PARTY_SERVICE_NAME=mock-relying-party-service
+MOCK_RELYING_PARTY_UI_NAME=mock-relying-party-ui
+MOCK_RELYING_PARTY_PRIVATE_KEY_SECRET_NAME=mock-relying-party-private-key-jwk
 # The partner-onboarder chart is used from the local mosip-onboarding repo (moupdate branch)
 # because the propertiesOverride feature used in values.yaml is not yet published in the
 # upstream mosip/partner-onboarder Helm registry. Set ONBOARDER_CHART_DIR to the path of
@@ -147,6 +161,10 @@ function installing_onboarder() {
       --set extraEnvVarsCM[1]=keycloak-env-vars \
       --set extraEnvVarsCM[2]=keycloak-host \
       $ENABLE_INSECURE \
+      $SYNC_LIVE_DEPLOYMENT_OPTION \
+      --set onboarding.propertiesOverride.mock-rp-oidc.MOCK_RELYING_PARTY_SERVICE_NAME="$MOCK_REPLYING_PARTY_SERVICE_NAME" \
+      --set onboarding.propertiesOverride.mock-rp-oidc.MOCK_RELYING_PARTY_UI_NAME="$MOCK_RELYING_PARTY_UI_NAME" \
+      --set onboarding.propertiesOverride.mock-rp-oidc.MOCK_RELYING_PARTY_PRIVATE_KEY_SECRET_NAME="$MOCK_RELYING_PARTY_PRIVATE_KEY_SECRET_NAME" \
       -f values.yaml \
       --wait --wait-for-jobs
     echo "Partner onboarder executed and reports are moved to S3 or NFS please check the same to make sure partner was onboarded sucessfully."
