@@ -168,7 +168,11 @@ function installing_onboarder() {
       -f values.yaml \
       --wait --wait-for-jobs
     echo "Partner onboarder executed and reports are moved to S3 or NFS please check the same to make sure partner was onboarded sucessfully."
-    kubectl rollout restart deployment $MOCK_REPLYING_PARTY_SERVICE_NAME -n $NS
+    if [ "$sync_live" = "y" ] || [ "$sync_live" = "Y" ]; then
+      kubectl rollout restart deployment $MOCK_REPLYING_PARTY_SERVICE_NAME -n $NS
+    else
+      echo "Skipped restarting $MOCK_REPLYING_PARTY_SERVICE_NAME - live deployment sync was declined above."
+    fi
     return 0
   fi
 }
